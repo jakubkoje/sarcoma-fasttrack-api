@@ -1,0 +1,19 @@
+fastapi
+uvicorn
+pydantic-settings
+sqlmodel
+psycopg[binary]
+python-jose[cryptography]
+passlib
+## Used for easier downloading and parsing of fhir resources
+fhirpy
+
+## Used for creating and validating FHIR resources
+fhir.resources
+
+# InterSystems Python Driver
+intersystems-irispython 
+
+# used for creating embedding models from plain text
+sentence-transformers 
+alembic

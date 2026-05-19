@@ -1,4 +1,27 @@
-bin/
-.DS_Store
+# Bytecode and caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Tooling / IDE
+.vscode/
+.idea/
+
+# Build / coverage
+*.log
+dist/
+build/
+.coverage
+coverage.xml
+
+# Local env/config
 .env
 .env.*
+!.env.example
+!.example-env

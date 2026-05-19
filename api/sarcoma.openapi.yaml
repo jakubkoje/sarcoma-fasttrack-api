@@ -1,0 +1,824 @@
+openapi: 3.0.3
+info:
+  title: Sarcom FastTrack API
+  version: 1.0.0
+  description: Go WebAPI for Sarcom FastTrack patient handoff reports.
+  contact:
+    email: support@sarcoma-fasttrack.local
+  license:
+    name: CC BY 4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+servers:
+  - description: Local API
+    url: http://localhost:8000
+  - description: WAC Gateway API route
+    url: /sarcoma-fasttrack-api
+tags:
+  - name: auth
+    description: Authentication endpoints
+  - name: patients
+    description: Patient records
+  - name: reports
+    description: Sarcoma handoff reports
+  - name: organizations
+    description: Specialist centers and providers
+  - name: users
+    description: User and doctor records
+  - name: system
+    description: Health and API metadata
+security:
+  - bearerAuth: []
+paths:
+  /health/db:
+    get:
+      tags: [system]
+      summary: Check API and backing store health.
+      operationId: getDatabaseHealth
+      security: []
+      responses:
+        "200":
+          description: Store is reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Store is not reachable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /openapi:
+    get:
+      tags: [system]
+      summary: Return this OpenAPI document as YAML.
+      operationId: getOpenApiDocument
+      security: []
+      responses:
+        "200":
+          description: OpenAPI YAML document.
+          content:
+            application/yaml:
+              schema:
+                type: string
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Login and return a bearer token.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Bearer token for subsequent requests.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      summary: Register a local user.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: Created user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: End the current client session.
+      operationId: logout
+      responses:
+        "204":
+          description: Session ended.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/users:
+    get:
+      tags: [users]
+      summary: List users.
+      operationId: listUsers
+      responses:
+        "200":
+          description: Visible users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [users]
+      summary: Create a user.
+      operationId: createUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreate"
+      responses:
+        "200":
+          description: Created user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /api/v1/patients:
+    get:
+      tags: [patients]
+      summary: List patients.
+      operationId: listPatients
+      responses:
+        "200":
+          description: Patient list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PatientRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [patients]
+      summary: Create a patient.
+      operationId: createPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientCreate"
+      responses:
+        "200":
+          description: Created patient.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/patients/{patientId}:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [patients]
+      summary: Get patient detail.
+      operationId: getPatient
+      responses:
+        "200":
+          description: Patient detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [patients]
+      summary: Update patient detail.
+      operationId: updatePatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatientCreate"
+      responses:
+        "200":
+          description: Updated patient.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PatientRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [patients]
+      summary: Delete patient.
+      operationId: deletePatient
+      responses:
+        "204":
+          description: Patient deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/patients/{patientId}/name:
+    parameters:
+      - $ref: "#/components/parameters/PatientId"
+    get:
+      tags: [patients]
+      summary: Get display name for a patient.
+      operationId: getPatientName
+      responses:
+        "200":
+          description: Patient display name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NameResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/reports:
+    get:
+      tags: [reports]
+      summary: List reports visible to the current user.
+      operationId: listReports
+      responses:
+        "200":
+          description: Report list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [reports]
+      summary: Create a report.
+      operationId: createReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportCreate"
+      responses:
+        "200":
+          description: Created report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/reports/{reportId}:
+    parameters:
+      - $ref: "#/components/parameters/ReportId"
+    get:
+      tags: [reports]
+      summary: Get report detail.
+      operationId: getReport
+      responses:
+        "200":
+          description: Report detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [reports]
+      summary: Update report detail.
+      operationId: updateReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportCreate"
+      responses:
+        "200":
+          description: Updated report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [reports]
+      summary: Delete report.
+      operationId: deleteReport
+      responses:
+        "204":
+          description: Report deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/reports/{reportId}/status:
+    parameters:
+      - $ref: "#/components/parameters/ReportId"
+    patch:
+      tags: [reports]
+      summary: Update report status.
+      operationId: updateReportStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusUpdate"
+      responses:
+        "200":
+          description: Updated report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/reports/{reportId}/feedback:
+    parameters:
+      - $ref: "#/components/parameters/ReportId"
+    patch:
+      tags: [reports]
+      summary: Update specialist feedback.
+      operationId: updateReportFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackUpdate"
+      responses:
+        "200":
+          description: Updated report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/reports/{reportId}/classification:
+    parameters:
+      - $ref: "#/components/parameters/ReportId"
+    get:
+      tags: [reports]
+      summary: Get deterministic demo classification for a report.
+      operationId: getReportClassification
+      responses:
+        "200":
+          description: Classification result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Classification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/reports/{reportId}/reclassify:
+    parameters:
+      - $ref: "#/components/parameters/ReportId"
+    post:
+      tags: [reports]
+      summary: Recompute deterministic demo classification for a report.
+      operationId: reclassifyReport
+      responses:
+        "200":
+          description: Classification result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Classification"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/organizations:
+    get:
+      tags: [organizations]
+      summary: List organizations.
+      operationId: listOrganizations
+      responses:
+        "200":
+          description: Organization list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrganizationRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [organizations]
+      summary: Create an organization.
+      operationId: createOrganization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationCreate"
+      responses:
+        "200":
+          description: Created organization.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/organizations/{organizationId}:
+    parameters:
+      - $ref: "#/components/parameters/OrganizationId"
+    get:
+      tags: [organizations]
+      summary: Get organization detail.
+      operationId: getOrganization
+      responses:
+        "200":
+          description: Organization detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [organizations]
+      summary: Update organization detail.
+      operationId: updateOrganization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationCreate"
+      responses:
+        "200":
+          description: Updated organization.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [organizations]
+      summary: Delete organization.
+      operationId: deleteOrganization
+      responses:
+        "204":
+          description: Organization deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/organizations/{organizationId}/name:
+    parameters:
+      - $ref: "#/components/parameters/OrganizationId"
+    get:
+      tags: [organizations]
+      summary: Get display name for an organization.
+      operationId: getOrganizationName
+      responses:
+        "200":
+          description: Organization display name.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NameResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PatientId:
+      in: path
+      name: patientId
+      required: true
+      schema:
+        type: integer
+    ReportId:
+      in: path
+      name: reportId
+      required: true
+      schema:
+        type: integer
+    OrganizationId:
+      in: path
+      name: organizationId
+      required: true
+      schema:
+        type: integer
+  responses:
+    BadRequest:
+      description: Invalid request payload.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Resource already exists.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
+    HealthResponse:
+      type: object
+      required: [status, store]
+      properties:
+        status:
+          type: string
+          example: ok
+        store:
+          type: string
+          enum: [memory, mongo]
+        detail:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    RegisterRequest:
+      allOf:
+        - $ref: "#/components/schemas/UserCreate"
+    TokenResponse:
+      type: object
+      required: [access_token, token_type]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        user:
+          $ref: "#/components/schemas/UserRead"
+    UserRole:
+      type: string
+      enum: [admin, doctor, specialist, coordinator]
+    UserCreate:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          $ref: "#/components/schemas/UserRole"
+        organization_id:
+          type: integer
+          nullable: true
+    UserRead:
+      type: object
+      required: [id, email, role, is_active]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/UserRole"
+        is_active:
+          type: boolean
+        organization_id:
+          type: integer
+          nullable: true
+        fhir_id:
+          type: string
+          nullable: true
+    PatientCreate:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        given_name:
+          type: string
+        family_name:
+          type: string
+        address:
+          type: string
+        address_text:
+          type: string
+        birth_number:
+          type: string
+        identifier_rc:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+    PatientRead:
+      allOf:
+        - $ref: "#/components/schemas/PatientCreate"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+            fhir_id:
+              type: string
+    OrganizationCreate:
+      type: object
+      properties:
+        name:
+          type: string
+        type_code:
+          type: string
+        address:
+          type: string
+        contact:
+          type: string
+        email:
+          type: string
+          format: email
+    OrganizationRead:
+      allOf:
+        - $ref: "#/components/schemas/OrganizationCreate"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+            fhir_id:
+              type: string
+    ReportStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, SUBMITTED, SENT, DONE, ERROR]
+    ReportCreate:
+      type: object
+      required: [patient_id, doctor_id, target_organization_id]
+      properties:
+        patient_id:
+          type: integer
+        doctor_id:
+          type: integer
+        target_organization_id:
+          type: integer
+        status:
+          $ref: "#/components/schemas/ReportStatus"
+        authored_on:
+          type: string
+          format: date-time
+          nullable: true
+        note:
+          type: string
+        anamnesis:
+          type: string
+        mkn10_code:
+          type: string
+        severity:
+          type: string
+        feedback_specialist:
+          type: string
+        is_new_patient:
+          type: boolean
+        any_imaging_performed:
+          type: boolean
+        additional_imaging_planned:
+          type: boolean
+    ReportRead:
+      allOf:
+        - $ref: "#/components/schemas/ReportCreate"
+        - type: object
+          required: [id, status, status_cz, created_at, updated_at]
+          properties:
+            id:
+              type: integer
+            fhir_id:
+              type: string
+            status_cz:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    StatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/ReportStatus"
+    FeedbackUpdate:
+      type: object
+      properties:
+        feedback_specialist:
+          type: string
+        status:
+          $ref: "#/components/schemas/ReportStatus"
+    Classification:
+      type: object
+      additionalProperties: true
+      properties:
+        specialist_type:
+          type: string
+        specialist_reason:
+          type: string
+        severity:
+          type: string
+        severity_code:
+          type: string
+        severity_reason:
+          type: string
+    NameResponse:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string

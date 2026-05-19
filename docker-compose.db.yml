@@ -1,0 +1,32 @@
+services:
+  seeder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sarcomfasttrack-seeder
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: sarcomfasttrack
+      DB_USER: sarcomfasttrack
+      DB_PASSWORD: sarcomfasttrack
+      FHIR_ENABLED: ${FHIR_ENABLED:-true}
+      FHIR_SERVER_URL: ${FHIR_SERVER_URL:-http://host.docker.internal:32783/csp/healthshare/demo/fhir/r4}
+      FHIR_SERVER_USER: ${FHIR_SERVER_USER:-_SYSTEM}
+      FHIR_SERVER_PASSWORD: ${FHIR_SERVER_PASSWORD:-ISCDEMO}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./scripts:/code/scripts:ro
+      - ./app:/code/app:ro
+    command: python scripts/seed_database.py
+    networks:
+      - sarcomfasttrack-network
+    profiles:
+      - seeder  # Only run when explicitly requested
+    restart: "no"
+
+networks:
+  sarcomfasttrack-network:
+    external: true
+    name: sarcomfasttrack-network
