@@ -1,9 +1,0 @@
-# Copy this file to .env and fill in real credentials locally.
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=example_db
-DB_USER=example_user
-DB_PASSWORD=example_password
-SECRET_KEY=change-me
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-ALGORITHM=HS256
