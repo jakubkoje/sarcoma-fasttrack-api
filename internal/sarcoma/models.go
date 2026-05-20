@@ -20,6 +20,7 @@ const (
 	StatusSent      ReportStatus = "SENT"
 	StatusDone      ReportStatus = "DONE"
 	StatusError     ReportStatus = "ERROR"
+	StatusCancelled ReportStatus = "CANCELLED"
 )
 
 func (s ReportStatus) Czech() string {
@@ -36,9 +37,35 @@ func (s ReportStatus) Czech() string {
 		return "Dokončeno"
 	case StatusError:
 		return "Chyba"
+	case StatusCancelled:
+		return "Zrušené"
 	default:
 		return string(s)
 	}
+}
+
+func (s ReportStatus) IsValid() bool {
+	switch s {
+	case StatusDraft, StatusActive, StatusSubmitted, StatusSent, StatusDone, StatusError, StatusCancelled:
+		return true
+	}
+	return false
+}
+
+type ArticleStatus string
+
+const (
+	ArticleDraft     ArticleStatus = "DRAFT"
+	ArticlePublished ArticleStatus = "PUBLISHED"
+	ArticleArchived  ArticleStatus = "ARCHIVED"
+)
+
+func (s ArticleStatus) IsValid() bool {
+	switch s {
+	case ArticleDraft, ArticlePublished, ArticleArchived:
+		return true
+	}
+	return false
 }
 
 type LoginRequest struct {
@@ -142,6 +169,9 @@ type OrganizationCreate struct {
 	AddressCity       *string `json:"address_city,omitempty"`
 	AddressPostalCode *string `json:"address_postal_code,omitempty"`
 	AddressCountry    *string `json:"address_country,omitempty"`
+	Capacity          *int    `json:"capacity,omitempty"`
+	Region            *string `json:"region,omitempty"`
+	CatchmentArea     *string `json:"catchment_area,omitempty"`
 }
 
 type OrganizationUpdate struct {
@@ -156,6 +186,9 @@ type OrganizationUpdate struct {
 	AddressCity       *string `json:"address_city,omitempty"`
 	AddressPostalCode *string `json:"address_postal_code,omitempty"`
 	AddressCountry    *string `json:"address_country,omitempty"`
+	Capacity          *int    `json:"capacity,omitempty"`
+	Region            *string `json:"region,omitempty"`
+	CatchmentArea     *string `json:"catchment_area,omitempty"`
 }
 
 type OrganizationRead struct {
@@ -171,6 +204,9 @@ type OrganizationRead struct {
 	AddressCity       *string `json:"address_city,omitempty"`
 	AddressPostalCode *string `json:"address_postal_code,omitempty"`
 	AddressCountry    *string `json:"address_country,omitempty"`
+	Capacity          *int    `json:"capacity,omitempty"`
+	Region            *string `json:"region,omitempty"`
+	CatchmentArea     *string `json:"catchment_area,omitempty"`
 }
 
 type ReportCreate struct {
@@ -262,4 +298,47 @@ type ReportRead struct {
 	SeverityCode             *int         `json:"severity_code,omitempty"`
 	SeverityConfidence       *float64     `json:"severity_confidence,omitempty"`
 	OverallConfidence        *float64     `json:"overall_confidence,omitempty"`
+}
+
+type ArticleCreate struct {
+	Title            string  `json:"title" binding:"required"`
+	Summary          string  `json:"summary" binding:"required"`
+	Body             string  `json:"body" binding:"required"`
+	Category         *string `json:"category,omitempty"`
+	ImageURL         *string `json:"image_url,omitempty"`
+	AuthorName       *string `json:"author_name,omitempty"`
+	AuthorAvatarURL  *string `json:"author_avatar_url,omitempty"`
+	ReadTimeMinutes  *int    `json:"read_time_minutes,omitempty"`
+}
+
+type ArticleUpdate struct {
+	Title            *string `json:"title,omitempty"`
+	Summary          *string `json:"summary,omitempty"`
+	Body             *string `json:"body,omitempty"`
+	Category         *string `json:"category,omitempty"`
+	ImageURL         *string `json:"image_url,omitempty"`
+	AuthorName       *string `json:"author_name,omitempty"`
+	AuthorAvatarURL  *string `json:"author_avatar_url,omitempty"`
+	ReadTimeMinutes  *int    `json:"read_time_minutes,omitempty"`
+}
+
+type ArticleStatusUpdate struct {
+	Status ArticleStatus `json:"status" binding:"required"`
+}
+
+type ArticleRead struct {
+	ID              int           `json:"id"`
+	Title           string        `json:"title"`
+	Summary         string        `json:"summary"`
+	Body            string        `json:"body"`
+	Category        *string       `json:"category,omitempty"`
+	ImageURL        *string       `json:"image_url,omitempty"`
+	AuthorID        int           `json:"author_id"`
+	AuthorName      *string       `json:"author_name,omitempty"`
+	AuthorAvatarURL *string       `json:"author_avatar_url,omitempty"`
+	ReadTimeMinutes *int          `json:"read_time_minutes,omitempty"`
+	Status          ArticleStatus `json:"status"`
+	PublishedAt     *time.Time    `json:"published_at,omitempty"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
 }

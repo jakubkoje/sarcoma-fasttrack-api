@@ -24,6 +24,8 @@ tags:
     description: Specialist centers and providers
   - name: users
     description: User and doctor records
+  - name: articles
+    description: Educational content for primary care physicians
   - name: system
     description: Health and API metadata
 security:
@@ -528,6 +530,133 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+  /api/v1/articles:
+    get:
+      tags: [articles]
+      summary: List educational articles visible to the current user.
+      description: |
+        Coordinators see their own DRAFT/ARCHIVED articles plus everything PUBLISHED.
+        Doctors, specialists and patients see PUBLISHED only.
+        Admin sees everything.
+      operationId: listArticles
+      responses:
+        "200":
+          description: Articles visible to the caller, sorted by id descending.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArticleRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [articles]
+      summary: Create a new educational article. Coordinator or admin only.
+      operationId: createArticle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleCreate"
+      responses:
+        "201":
+          description: Created article (initial status DRAFT).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /api/v1/articles/{articleId}:
+    parameters:
+      - $ref: "#/components/parameters/ArticleId"
+    get:
+      tags: [articles]
+      summary: Get an article by id.
+      operationId: getArticle
+      responses:
+        "200":
+          description: Article detail (404 when not visible to caller).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleRead"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [articles]
+      summary: Update article fields. Coordinator (own articles) or admin.
+      operationId: updateArticle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleUpdate"
+      responses:
+        "200":
+          description: Updated article.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [articles]
+      summary: Delete an article. Coordinator (own articles) or admin.
+      operationId: deleteArticle
+      responses:
+        "204":
+          description: Article deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/articles/{articleId}/status:
+    parameters:
+      - $ref: "#/components/parameters/ArticleId"
+    patch:
+      tags: [articles]
+      summary: Change article publication status. Coordinator (own) or admin.
+      operationId: updateArticleStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleStatusUpdate"
+      responses:
+        "200":
+          description: Updated article.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticleRead"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/v1/organizations/{organizationId}/name:
     parameters:
       - $ref: "#/components/parameters/OrganizationId"
@@ -571,6 +700,12 @@ components:
       required: true
       schema:
         type: integer
+    ArticleId:
+      in: path
+      name: articleId
+      required: true
+      schema:
+        type: integer
   responses:
     BadRequest:
       description: Invalid request payload.
@@ -586,6 +721,12 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: Caller is authenticated but not allowed to perform the action.
       content:
         application/json:
           schema:
@@ -714,6 +855,7 @@ components:
               type: string
     OrganizationCreate:
       type: object
+      required: [name, type_code, address, contact]
       properties:
         name:
           type: string
@@ -726,6 +868,16 @@ components:
         email:
           type: string
           format: email
+        capacity:
+          type: integer
+          minimum: 0
+          description: Number of patient beds or annual capacity of the center.
+        region:
+          type: string
+          description: Administrative region of the center (e.g. Jihomoravský).
+        catchment_area:
+          type: string
+          description: Free-form description of the catchment area served.
     OrganizationRead:
       allOf:
         - $ref: "#/components/schemas/OrganizationCreate"
@@ -738,7 +890,13 @@ components:
               type: string
     ReportStatus:
       type: string
-      enum: [DRAFT, ACTIVE, SUBMITTED, SENT, DONE, ERROR]
+      enum: [DRAFT, ACTIVE, SUBMITTED, SENT, DONE, ERROR, CANCELLED]
+      description: |
+        Lifecycle of a sarcoma referral.
+        - DRAFT: created by doctor, not yet shared with the specialist center
+        - ACTIVE: handed off to the specialist (doctor edits frozen)
+        - SUBMITTED / SENT / DONE / ERROR: states driven by the specialist
+        - CANCELLED: withdrawn by the referring doctor or admin
     ReportCreate:
       type: object
       required: [patient_id, doctor_id, target_organization_id]
@@ -802,6 +960,79 @@ components:
           type: string
         status:
           $ref: "#/components/schemas/ReportStatus"
+    ArticleStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, ARCHIVED]
+    ArticleCreate:
+      type: object
+      required: [title, summary, body]
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        body:
+          type: string
+          description: Markdown body of the article.
+        category:
+          type: string
+        image_url:
+          type: string
+        author_name:
+          type: string
+        author_avatar_url:
+          type: string
+        read_time_minutes:
+          type: integer
+          minimum: 0
+    ArticleUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        summary:
+          type: string
+        body:
+          type: string
+        category:
+          type: string
+        image_url:
+          type: string
+        author_name:
+          type: string
+        author_avatar_url:
+          type: string
+        read_time_minutes:
+          type: integer
+          minimum: 0
+    ArticleStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/ArticleStatus"
+    ArticleRead:
+      allOf:
+        - $ref: "#/components/schemas/ArticleCreate"
+        - type: object
+          required: [id, status, author_id, created_at, updated_at]
+          properties:
+            id:
+              type: integer
+            author_id:
+              type: integer
+            status:
+              $ref: "#/components/schemas/ArticleStatus"
+            published_at:
+              type: string
+              format: date-time
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
     Classification:
       type: object
       additionalProperties: true

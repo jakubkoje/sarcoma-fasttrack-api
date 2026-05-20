@@ -96,6 +96,7 @@ func testRouterWithStore(store *Store) *gin.Engine {
 		ReportsAPI:       NewReportsAPI(store),
 		OrganizationsAPI: NewOrganizationsAPI(store),
 		UsersAPI:         NewUsersAPI(store),
+		ArticlesAPI:      NewArticlesAPI(store),
 		AuthMiddleware:   AuthMiddleware(store),
 	})
 	return router

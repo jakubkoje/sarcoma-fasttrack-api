@@ -43,6 +43,28 @@ func currentUser(c *gin.Context) (storedUser, bool) {
 	return user, ok
 }
 
+func hasRole(user storedUser, roles ...UserRole) bool {
+	for _, role := range roles {
+		if user.Role == role {
+			return true
+		}
+	}
+	return false
+}
+
+func requireRole(c *gin.Context, roles ...UserRole) (storedUser, bool) {
+	user, ok := currentUser(c)
+	if !ok {
+		writeError(c, http.StatusUnauthorized, "Missing authenticated user")
+		return storedUser{}, false
+	}
+	if !hasRole(user, roles...) {
+		writeError(c, http.StatusForbidden, "Forbidden for role "+string(user.Role))
+		return user, false
+	}
+	return user, true
+}
+
 func writeError(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"detail": message, "message": message, "status": status})
 }

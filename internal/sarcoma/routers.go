@@ -20,6 +20,7 @@ type ApiHandleFunctions struct {
 	ReportsAPI       ReportsAPI
 	OrganizationsAPI OrganizationsAPI
 	UsersAPI         UsersAPI
+	ArticlesAPI      ArticlesAPI
 	AuthMiddleware   gin.HandlerFunc
 }
 
@@ -88,5 +89,12 @@ func getRoutes(handleFunctions ApiHandleFunctions) []Route {
 		{"UpdateOrganization", http.MethodPut, "/api/v1/organizations/:organizationId", handleFunctions.OrganizationsAPI.UpdateOrganization, true},
 		{"DeleteOrganization", http.MethodDelete, "/api/v1/organizations/:organizationId", handleFunctions.OrganizationsAPI.DeleteOrganization, true},
 		{"GetOrganizationName", http.MethodGet, "/api/v1/organizations/:organizationId/name", handleFunctions.OrganizationsAPI.GetOrganizationName, true},
+
+		{"ListArticles", http.MethodGet, "/api/v1/articles", handleFunctions.ArticlesAPI.ListArticles, true},
+		{"CreateArticle", http.MethodPost, "/api/v1/articles", handleFunctions.ArticlesAPI.CreateArticle, true},
+		{"GetArticle", http.MethodGet, "/api/v1/articles/:articleId", handleFunctions.ArticlesAPI.GetArticle, true},
+		{"UpdateArticle", http.MethodPut, "/api/v1/articles/:articleId", handleFunctions.ArticlesAPI.UpdateArticle, true},
+		{"DeleteArticle", http.MethodDelete, "/api/v1/articles/:articleId", handleFunctions.ArticlesAPI.DeleteArticle, true},
+		{"UpdateArticleStatus", http.MethodPatch, "/api/v1/articles/:articleId/status", handleFunctions.ArticlesAPI.UpdateArticleStatus, true},
 	}
 }

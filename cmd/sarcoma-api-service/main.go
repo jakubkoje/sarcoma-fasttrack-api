@@ -68,6 +68,7 @@ func main() {
 		ReportsAPI:       sarcoma.NewReportsAPI(store),
 		OrganizationsAPI: sarcoma.NewOrganizationsAPI(store),
 		UsersAPI:         sarcoma.NewUsersAPI(store),
+		ArticlesAPI:      sarcoma.NewArticlesAPI(store),
 		AuthMiddleware:   sarcoma.AuthMiddleware(store),
 	}
 	sarcoma.NewRouterWithGinEngine(engine, handleFunctions)

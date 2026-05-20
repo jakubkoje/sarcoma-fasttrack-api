@@ -1,14 +1,3 @@
-# Bytecode and caches
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-
-# Environments
-.venv/
-venv/
-env/
-
 # Tooling / IDE
 .vscode/
 .idea/
@@ -17,11 +6,15 @@ env/
 *.log
 dist/
 build/
-.coverage
-coverage.xml
+coverage.out
+coverage.html
+
+# Go
+*.test
+*.out
 
 # Local env/config
 .env
 .env.*
 !.env.example
-!.example-env
+CLAUDE.md

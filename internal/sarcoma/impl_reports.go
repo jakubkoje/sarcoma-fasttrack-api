@@ -29,8 +29,16 @@ func (api *implReportsAPI) ListReports(c *gin.Context) {
 }
 
 func (api *implReportsAPI) CreateReport(c *gin.Context) {
+	user, ok := requireRole(c, RoleDoctor, RoleAdmin)
+	if !ok {
+		return
+	}
 	var payload ReportCreate
 	if !bindJSON(c, &payload) {
+		return
+	}
+	if payload.Status != nil && !payload.Status.IsValid() {
+		writeError(c, http.StatusBadRequest, "Invalid status: "+string(*payload.Status))
 		return
 	}
 	api.store.mu.Lock()
@@ -45,6 +53,10 @@ func (api *implReportsAPI) CreateReport(c *gin.Context) {
 	}
 	if _, found := api.store.organizations[payload.TargetOrganizationID]; !found {
 		writeError(c, http.StatusNotFound, "Organization not found")
+		return
+	}
+	if user.Role == RoleDoctor && payload.DoctorID != user.ID {
+		writeError(c, http.StatusForbidden, "Doctor can only create referrals attributed to themselves")
 		return
 	}
 	status := StatusDraft
@@ -115,8 +127,17 @@ func (api *implReportsAPI) UpdateReport(c *gin.Context) {
 	if !ok {
 		return
 	}
+	user, ok := currentUser(c)
+	if !ok {
+		writeError(c, http.StatusUnauthorized, "Missing authenticated user")
+		return
+	}
 	var payload ReportUpdate
 	if !bindJSON(c, &payload) {
+		return
+	}
+	if payload.Status != nil && !payload.Status.IsValid() {
+		writeError(c, http.StatusBadRequest, "Invalid status: "+string(*payload.Status))
 		return
 	}
 	api.store.mu.Lock()
@@ -124,6 +145,25 @@ func (api *implReportsAPI) UpdateReport(c *gin.Context) {
 	report, found := api.store.reports[id]
 	if !found {
 		writeError(c, http.StatusNotFound, "Report not found")
+		return
+	}
+	switch user.Role {
+	case RoleAdmin:
+	case RoleDoctor:
+		if report.DoctorID != user.ID {
+			writeError(c, http.StatusForbidden, "Doctor can only edit own referrals")
+			return
+		}
+		if report.Status != StatusDraft {
+			writeError(c, http.StatusConflict, "Referral can only be edited while in DRAFT")
+			return
+		}
+		if payload.Status != nil && *payload.Status != StatusDraft {
+			writeError(c, http.StatusForbidden, "Use PATCH /status to change referral status")
+			return
+		}
+	default:
+		writeError(c, http.StatusForbidden, "Forbidden for role "+string(user.Role))
 		return
 	}
 	if payload.PatientID != nil {
@@ -162,10 +202,31 @@ func (api *implReportsAPI) DeleteReport(c *gin.Context) {
 	if !ok {
 		return
 	}
+	user, ok := currentUser(c)
+	if !ok {
+		writeError(c, http.StatusUnauthorized, "Missing authenticated user")
+		return
+	}
 	api.store.mu.Lock()
 	defer api.store.mu.Unlock()
-	if _, found := api.store.reports[id]; !found {
+	report, found := api.store.reports[id]
+	if !found {
 		writeError(c, http.StatusNotFound, "Report not found")
+		return
+	}
+	switch user.Role {
+	case RoleAdmin:
+	case RoleDoctor:
+		if report.DoctorID != user.ID {
+			writeError(c, http.StatusForbidden, "Doctor can only delete own referrals")
+			return
+		}
+		if report.Status != StatusDraft && report.Status != StatusCancelled {
+			writeError(c, http.StatusConflict, "Referral can only be deleted while in DRAFT or CANCELLED")
+			return
+		}
+	default:
+		writeError(c, http.StatusForbidden, "Forbidden for role "+string(user.Role))
 		return
 	}
 	delete(api.store.reports, id)
@@ -180,8 +241,17 @@ func (api *implReportsAPI) UpdateReportStatus(c *gin.Context) {
 	if !ok {
 		return
 	}
+	user, ok := currentUser(c)
+	if !ok {
+		writeError(c, http.StatusUnauthorized, "Missing authenticated user")
+		return
+	}
 	var payload ReportStatusUpdate
 	if !bindJSON(c, &payload) {
+		return
+	}
+	if !payload.Status.IsValid() {
+		writeError(c, http.StatusBadRequest, "Invalid status: "+string(payload.Status))
 		return
 	}
 	api.store.mu.Lock()
@@ -191,9 +261,14 @@ func (api *implReportsAPI) UpdateReportStatus(c *gin.Context) {
 		writeError(c, http.StatusNotFound, "Report not found")
 		return
 	}
+	if err := authorizeStatusTransition(user, report.ReportRead, payload.Status); err != "" {
+		writeError(c, http.StatusForbidden, err)
+		return
+	}
 	report.Status = payload.Status
 	report.StatusCZ = payload.Status.Czech()
-	report.UpdatedAt = time.Now().UTC()
+	now := time.Now().UTC()
+	report.UpdatedAt = now
 	api.store.reports[id] = report
 	if !persistOrError(c, api.store) {
 		return
@@ -204,6 +279,9 @@ func (api *implReportsAPI) UpdateReportStatus(c *gin.Context) {
 func (api *implReportsAPI) UpdateReportFeedback(c *gin.Context) {
 	id, ok := intParam(c, "reportId")
 	if !ok {
+		return
+	}
+	if _, ok := requireRole(c, RoleSpecialist, RoleAdmin); !ok {
 		return
 	}
 	var payload ReportFeedbackUpdate
@@ -224,6 +302,44 @@ func (api *implReportsAPI) UpdateReportFeedback(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, report.ReportRead)
+}
+
+func authorizeStatusTransition(user storedUser, report ReportRead, target ReportStatus) string {
+	if report.Status == StatusCancelled {
+		return "Referral is cancelled and cannot transition further"
+	}
+	if target == report.Status {
+		return ""
+	}
+	switch user.Role {
+	case RoleAdmin:
+		return ""
+	case RoleDoctor:
+		if report.DoctorID != user.ID {
+			return "Doctor can only change status of own referrals"
+		}
+		switch report.Status {
+		case StatusDraft:
+			if target == StatusActive || target == StatusCancelled {
+				return ""
+			}
+		case StatusActive:
+			if target == StatusCancelled {
+				return ""
+			}
+		}
+		return "Doctor cannot move referral from " + string(report.Status) + " to " + string(target)
+	case RoleSpecialist:
+		if report.Status == StatusDraft {
+			return "Specialist cannot act on a DRAFT referral"
+		}
+		switch target {
+		case StatusActive, StatusSubmitted, StatusSent, StatusDone, StatusError, StatusCancelled:
+			return ""
+		}
+		return "Specialist cannot move referral to " + string(target)
+	}
+	return "Forbidden for role " + string(user.Role)
 }
 
 func (api *implReportsAPI) GetClassification(c *gin.Context) {

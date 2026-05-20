@@ -9,11 +9,13 @@ type StoreSnapshot struct {
 	NextPatientID int                `bson:"next_patient_id" json:"next_patient_id"`
 	NextOrgID     int                `bson:"next_org_id" json:"next_org_id"`
 	NextReportID  int                `bson:"next_report_id" json:"next_report_id"`
+	NextArticleID int                `bson:"next_article_id" json:"next_article_id"`
 	Users         []storedUser       `bson:"users" json:"users"`
 	Doctors       []storedDoctor     `bson:"doctors" json:"doctors"`
 	Patients      []PatientRead      `bson:"patients" json:"patients"`
 	Organizations []OrganizationRead `bson:"organizations" json:"organizations"`
 	Reports       []ReportRead       `bson:"reports" json:"reports"`
+	Articles      []ArticleRead      `bson:"articles" json:"articles"`
 }
 
 type Persistence interface {

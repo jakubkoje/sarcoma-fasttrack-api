@@ -19,8 +19,15 @@ func (api *implOrganizationsAPI) ListOrganizations(c *gin.Context) {
 }
 
 func (api *implOrganizationsAPI) CreateOrganization(c *gin.Context) {
+	if _, ok := requireRole(c, RoleAdmin); !ok {
+		return
+	}
 	var payload OrganizationCreate
 	if !bindJSON(c, &payload) {
+		return
+	}
+	if payload.Capacity != nil && *payload.Capacity < 0 {
+		writeError(c, http.StatusBadRequest, "Capacity must be non-negative")
 		return
 	}
 	api.store.mu.Lock()
@@ -44,6 +51,9 @@ func (api *implOrganizationsAPI) CreateOrganization(c *gin.Context) {
 		AddressCity:       payload.AddressCity,
 		AddressPostalCode: payload.AddressPostalCode,
 		AddressCountry:    payload.AddressCountry,
+		Capacity:          payload.Capacity,
+		Region:            payload.Region,
+		CatchmentArea:     payload.CatchmentArea,
 	}
 	api.store.organizations[id] = storedOrganization{OrganizationRead: organization}
 	if !persistOrError(c, api.store) {
@@ -72,8 +82,15 @@ func (api *implOrganizationsAPI) UpdateOrganization(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if _, ok := requireRole(c, RoleAdmin); !ok {
+		return
+	}
 	var payload OrganizationUpdate
 	if !bindJSON(c, &payload) {
+		return
+	}
+	if payload.Capacity != nil && *payload.Capacity < 0 {
+		writeError(c, http.StatusBadRequest, "Capacity must be non-negative")
 		return
 	}
 	api.store.mu.Lock()
@@ -116,6 +133,15 @@ func (api *implOrganizationsAPI) UpdateOrganization(c *gin.Context) {
 	if payload.AddressCountry != nil {
 		organization.AddressCountry = payload.AddressCountry
 	}
+	if payload.Capacity != nil {
+		organization.Capacity = payload.Capacity
+	}
+	if payload.Region != nil {
+		organization.Region = payload.Region
+	}
+	if payload.CatchmentArea != nil {
+		organization.CatchmentArea = payload.CatchmentArea
+	}
 	api.store.organizations[id] = organization
 	if !persistOrError(c, api.store) {
 		return
@@ -126,6 +152,9 @@ func (api *implOrganizationsAPI) UpdateOrganization(c *gin.Context) {
 func (api *implOrganizationsAPI) DeleteOrganization(c *gin.Context) {
 	id, ok := intParam(c, "organizationId")
 	if !ok {
+		return
+	}
+	if _, ok := requireRole(c, RoleAdmin); !ok {
 		return
 	}
 	api.store.mu.Lock()

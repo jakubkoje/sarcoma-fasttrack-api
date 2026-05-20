@@ -38,18 +38,24 @@ type storedReport struct {
 	ReportRead
 }
 
+type storedArticle struct {
+	ArticleRead
+}
+
 type Store struct {
 	mu            sync.RWMutex
 	nextUserID    int
 	nextPatientID int
 	nextOrgID     int
 	nextReportID  int
+	nextArticleID int
 	users         map[int]storedUser
 	usersByEmail  map[string]int
 	doctors       map[int]storedDoctor
 	patients      map[int]storedPatient
 	organizations map[int]storedOrganization
 	reports       map[int]storedReport
+	articles      map[int]storedArticle
 	secret        []byte
 	persistence   Persistence
 }
@@ -83,12 +89,14 @@ func emptyStore(persistence Persistence) *Store {
 		nextPatientID: 2,
 		nextOrgID:     16,
 		nextReportID:  2,
+		nextArticleID: 2,
 		users:         map[int]storedUser{},
 		usersByEmail:  map[string]int{},
 		doctors:       map[int]storedDoctor{},
 		patients:      map[int]storedPatient{},
 		organizations: map[int]storedOrganization{},
 		reports:       map[int]storedReport{},
+		articles:      map[int]storedArticle{},
 		secret:        []byte("sarcoma-fasttrack-local-dev-secret"),
 		persistence:   persistence,
 	}
@@ -97,25 +105,32 @@ func emptyStore(persistence Persistence) *Store {
 func (s *Store) seed() {
 	s.addSeedUser(1, "admin@admin.com", "admin", RoleAdmin, nil)
 	s.addSeedUser(2, "specialist@sft.local", "specialist", RoleSpecialist, strPtr("prac-specialist-seed"))
+	s.addSeedUser(3, "coordinator@sft.local", "coordinator", RoleCoordinator, strPtr("prac-coordinator-seed"))
 	s.addSeedUser(19, "doctor@sft.local", "doctor", RoleDoctor, strPtr("prac-doctor-seed"))
 	orgID := 14
 	s.doctors[19] = storedDoctor{ID: 19, UserID: 19, OrganizationID: &orgID, FhirID: strPtr("prac-doctor-seed")}
 
 	s.organizations[14] = storedOrganization{OrganizationRead: OrganizationRead{
-		ID:       14,
-		FhirID:   "org-mou",
-		Name:     strPtr("Masarykův onkologický ústav"),
-		TypeCode: strPtr("prov"),
-		Address:  strPtr("Žlutý kopec 7, Brno"),
-		Contact:  strPtr("+420543131111"),
+		ID:            14,
+		FhirID:        "org-mou",
+		Name:          strPtr("Masarykův onkologický ústav"),
+		TypeCode:      strPtr("prov"),
+		Address:       strPtr("Žlutý kopec 7, Brno"),
+		Contact:       strPtr("+420543131111"),
+		Capacity:      intPtr(120),
+		Region:        strPtr("Jihomoravský"),
+		CatchmentArea: strPtr("Morava a Slezsko"),
 	}}
 	s.organizations[15] = storedOrganization{OrganizationRead: OrganizationRead{
-		ID:       15,
-		FhirID:   "org-fn-motol",
-		Name:     strPtr("FN Motol"),
-		TypeCode: strPtr("prov"),
-		Address:  strPtr("V Úvalu 84, Praha"),
-		Contact:  strPtr("+420224431111"),
+		ID:            15,
+		FhirID:        "org-fn-motol",
+		Name:          strPtr("FN Motol"),
+		TypeCode:      strPtr("prov"),
+		Address:       strPtr("V Úvalu 84, Praha"),
+		Contact:       strPtr("+420224431111"),
+		Capacity:      intPtr(180),
+		Region:        strPtr("Hlavní město Praha"),
+		CatchmentArea: strPtr("Čechy"),
 	}}
 	s.patients[1] = storedPatient{PatientRead: PatientRead{
 		ID:           1,
@@ -150,6 +165,23 @@ func (s *Store) seed() {
 		CreatedAt:                now,
 		UpdatedAt:                now,
 		Severity:                 strPtr("2"),
+	}}
+	publishedAt := now
+	s.articles[1] = storedArticle{ArticleRead: ArticleRead{
+		ID:              1,
+		Title:           "Diagnostika sarkomu pro praktické lékaře",
+		Summary:         "Stručný přehled klíčových diagnostických kroků a kdy odeslat pacienta do specializovaného centra.",
+		Body:            "## Úvod\n\nU každého rychle rostoucího ložiska v měkkých tkáních zvažte sarkom.\n\n## Co odeslat\n\n- MR vyšetření postižené oblasti\n- Kompletní anamnézu a foto léze\n- Kontakt na pacienta\n\n## Kdy odeslat\n\nNeprodleně při jakémkoliv podezření — biopsii vždy plánuje specializované centrum.",
+		Category:        strPtr("Diagnostika"),
+		ImageURL:        strPtr("https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&q=80"),
+		AuthorID:        3,
+		AuthorName:      strPtr("MUDr. Koordinátor"),
+		AuthorAvatarURL: strPtr("https://ui-avatars.com/api/?name=Koordinator&background=9333ea&color=fff"),
+		ReadTimeMinutes: intPtr(6),
+		Status:          ArticlePublished,
+		PublishedAt:     &publishedAt,
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}}
 }
 
@@ -190,11 +222,13 @@ func (s *Store) snapshotLocked() StoreSnapshot {
 		NextPatientID: s.nextPatientID,
 		NextOrgID:     s.nextOrgID,
 		NextReportID:  s.nextReportID,
+		NextArticleID: s.nextArticleID,
 		Users:         make([]storedUser, 0, len(s.users)),
 		Doctors:       make([]storedDoctor, 0, len(s.doctors)),
 		Patients:      make([]PatientRead, 0, len(s.patients)),
 		Organizations: make([]OrganizationRead, 0, len(s.organizations)),
 		Reports:       make([]ReportRead, 0, len(s.reports)),
+		Articles:      make([]ArticleRead, 0, len(s.articles)),
 	}
 	for _, user := range s.users {
 		snapshot.Users = append(snapshot.Users, user)
@@ -211,6 +245,9 @@ func (s *Store) snapshotLocked() StoreSnapshot {
 	for _, report := range s.reports {
 		snapshot.Reports = append(snapshot.Reports, report.ReportRead)
 	}
+	for _, article := range s.articles {
+		snapshot.Articles = append(snapshot.Articles, article.ArticleRead)
+	}
 	return snapshot
 }
 
@@ -219,12 +256,17 @@ func (s *Store) applySnapshot(snapshot StoreSnapshot) {
 	s.nextPatientID = snapshot.NextPatientID
 	s.nextOrgID = snapshot.NextOrgID
 	s.nextReportID = snapshot.NextReportID
+	s.nextArticleID = snapshot.NextArticleID
+	if s.nextArticleID == 0 {
+		s.nextArticleID = 2
+	}
 	s.users = map[int]storedUser{}
 	s.usersByEmail = map[string]int{}
 	s.doctors = map[int]storedDoctor{}
 	s.patients = map[int]storedPatient{}
 	s.organizations = map[int]storedOrganization{}
 	s.reports = map[int]storedReport{}
+	s.articles = map[int]storedArticle{}
 
 	for _, user := range snapshot.Users {
 		s.users[user.ID] = user
@@ -241,6 +283,9 @@ func (s *Store) applySnapshot(snapshot StoreSnapshot) {
 	}
 	for _, report := range snapshot.Reports {
 		s.reports[report.ID] = storedReport{ReportRead: report}
+	}
+	for _, article := range snapshot.Articles {
+		s.articles[article.ID] = storedArticle{ArticleRead: article}
 	}
 }
 
@@ -306,5 +351,9 @@ func strPtr(value string) *string {
 }
 
 func boolPtr(value bool) *bool {
+	return &value
+}
+
+func intPtr(value int) *int {
 	return &value
 }
