@@ -1,0 +1,27 @@
+services:
+  mongo_db:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - db_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${SARCOMA_API_MONGODB_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${SARCOMA_API_MONGODB_PASSWORD:-admin}
+
+  api:
+    build: .
+    depends_on:
+      - mongo_db
+    ports:
+      - "8000:8000"
+    environment:
+      SARCOMA_API_ENVIRONMENT: development
+      SARCOMA_API_PORT: "8000"
+      SARCOMA_API_STORE: mongo
+      SARCOMA_API_MONGODB_URI: mongodb://${SARCOMA_API_MONGODB_USERNAME:-admin}:${SARCOMA_API_MONGODB_PASSWORD:-admin}@mongo_db:27017/?authSource=admin
+      SARCOMA_API_MONGODB_DATABASE: ${SARCOMA_API_MONGODB_DATABASE:-sarcoma-fasttrack}
+      SARCOMA_API_MONGODB_COLLECTION: ${SARCOMA_API_MONGODB_COLLECTION:-state}
+
+volumes:
+  db_data: {}

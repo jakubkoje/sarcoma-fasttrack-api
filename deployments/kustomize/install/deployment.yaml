@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sarcoma-fasttrack-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pod: sarcoma-fasttrack-api
+  template:
+    metadata:
+      labels:
+        pod: sarcoma-fasttrack-api
+    spec:
+      containers:
+        - name: sarcoma-fasttrack-api
+          image: peterhubina/sarcoma-fasttrack-api:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: SARCOMA_API_ENVIRONMENT
+              value: production
+            - name: SARCOMA_API_PORT
+              value: "8000"
+          readinessProbe:
+            httpGet:
+              path: /health/db
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/db
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "0.01"
+            limits:
+              memory: "512Mi"
+              cpu: "0.3"
+        - name: openapi-ui
+          image: swaggerapi/swagger-ui:v5.18.2
+          imagePullPolicy: Always
+          ports:
+            - name: openapi-ui
+              containerPort: 8081
+          env:
+            - name: PORT
+              value: "8081"
+            - name: URL
+              value: /openapi
+            - name: BASE_URL
+              value: /openapi-ui
+            - name: FILTER
+              value: "true"
+            - name: DISPLAY_OPERATION_ID
+              value: "true"
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "0.01"
+            limits:
+              memory: "96Mi"
+              cpu: "0.1"

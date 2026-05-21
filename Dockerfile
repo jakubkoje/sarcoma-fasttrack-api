@@ -1,15 +1,26 @@
-FROM golang:1.25-alpine AS build
+FROM golang:1.25 AS build
 
 WORKDIR /app
-COPY go.mod ./
+
+COPY go.mod go.sum* ./
+RUN go mod download
+
+COPY api/ api/
 COPY cmd/ cmd/
+COPY internal/ internal/
+
 RUN go test ./...
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /sarcoma-fasttrack-api ./cmd/sarcoma-fasttrack-api
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /sarcoma-api ./cmd/sarcoma-api-service
 
 FROM scratch
 
-COPY --from=build /sarcoma-fasttrack-api /sarcoma-fasttrack-api
+LABEL org.opencontainers.image.title="Sarcom FastTrack API"
+LABEL org.opencontainers.image.description="Go WebAPI for Sarcom FastTrack"
 
-ENV PORT=8000
+ENV SARCOMA_API_ENVIRONMENT=production
+ENV SARCOMA_API_PORT=8000
+
+COPY --from=build /sarcoma-api /sarcoma-api
+
 EXPOSE 8000
-ENTRYPOINT ["/sarcoma-fasttrack-api"]
+ENTRYPOINT ["/sarcoma-api"]

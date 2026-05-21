@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sarcoma-fasttrack-api
+spec:
+  template:
+    spec:
+      containers:
+        - name: sarcoma-fasttrack-api
+          env:
+            - name: SARCOMA_API_STORE
+              value: mongo
+            - name: SARCOMA_API_MONGODB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-auth
+                  key: username
+            - name: SARCOMA_API_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-auth
+                  key: password
+            - name: SARCOMA_API_MONGODB_URI
+              value: mongodb://$(SARCOMA_API_MONGODB_USERNAME):$(SARCOMA_API_MONGODB_PASSWORD)@mongodb:27017/?authSource=admin
+            - name: SARCOMA_API_MONGODB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: sarcoma-fasttrack-api-config
+                  key: database
+            - name: SARCOMA_API_MONGODB_COLLECTION
+              valueFrom:
+                configMapKeyRef:
+                  name: sarcoma-fasttrack-api-config
+                  key: collection
+            - name: SARCOMA_API_MONGODB_TIMEOUT_SECONDS
+              value: "5"
