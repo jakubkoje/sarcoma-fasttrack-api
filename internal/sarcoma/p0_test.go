@@ -36,8 +36,8 @@ func TestDoctorCanCancelOwnDraftReferral(t *testing.T) {
 	if cancelled.Status != StatusCancelled {
 		t.Fatalf("expected CANCELLED, got %q", cancelled.Status)
 	}
-	if cancelled.StatusCZ != "Zrušené" {
-		t.Fatalf("expected status_cz Zrušené, got %q", cancelled.StatusCZ)
+	if cancelled.StatusCZ != "Cancelled" {
+		t.Fatalf("expected status_cz Cancelled, got %q", cancelled.StatusCZ)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestArticlesCRUDForCoordinator(t *testing.T) {
 		"title":"Sarcoma red flags",
 		"summary":"Five clinical signs to escalate.",
 		"body":"## When to escalate\n\n- rapid growth\n- size > 5cm",
-		"category":"Diagnostika",
+		"category":"Diagnostics",
 		"read_time_minutes":4
 	}`, http.StatusCreated)
 	if created.Status != ArticleDraft {

@@ -442,7 +442,7 @@ func applyDemoClassification(report *ReportRead) {
 	report.Severity = strPtr(string(rune('0' + severityCode)))
 	report.SeverityConfidence = &confidence
 	report.OverallConfidence = &confidence
-	report.Specialist = strPtr([]string{"Onkolog", "Chirurg", "Radioterapeut"}[report.ID%3])
+	report.Specialist = strPtr([]string{"Oncologist", "Surgeon", "Radiotherapist"}[report.ID%3])
 	report.SpecialistConfidence = &confidence
 }
 

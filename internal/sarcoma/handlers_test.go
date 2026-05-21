@@ -15,12 +15,12 @@ func TestAPIWorkflow(t *testing.T) {
 	token := loginToken(t, router, "admin@admin.com", "admin")
 
 	patient := requestJSON[PatientRead](t, router, http.MethodPost, "/api/v1/patients", token, `{
-		"first_name": "Marie",
-		"last_name": "Dvořáková",
+		"first_name": "Mary",
+		"last_name": "Smith",
 		"address": "Náměstí 789, Ostrava",
 		"birth_number": "880303/9012",
 		"phone": "+420555666777",
-		"email": "marie.dvorakova@example.test"
+		"email": "mary.smith@example.test"
 	}`, http.StatusCreated)
 	if patient.ID == 0 || patient.FhirID == "" {
 		t.Fatalf("created patient is incomplete: %+v", patient)
@@ -31,8 +31,8 @@ func TestAPIWorkflow(t *testing.T) {
 		"doctor_id": 19,
 		"target_organization_id": 14,
 		"status": "DRAFT",
-		"anamnesis": "Suspektní ložisko měkkých tkání",
-		"note": "MRI: ložisko 4 cm"
+		"anamnesis": "Suspect soft tissue lesion",
+		"note": "MRI: 4 cm lesion"
 	}`, http.StatusCreated)
 	if report.Status != StatusDraft || report.PatientID != patient.ID {
 		t.Fatalf("unexpected report response: %+v", report)
@@ -46,15 +46,15 @@ func TestAPIWorkflow(t *testing.T) {
 		t.Fatalf("status was not updated: %+v", updated)
 	}
 
-	feedback := requestJSON[ReportRead](t, router, http.MethodPatch, "/api/v1/reports/"+itoa(report.ID)+"/feedback", token, `{"feedback_specialist":"Doplnit staging."}`, http.StatusOK)
-	if feedback.FeedbackSpecialist == nil || *feedback.FeedbackSpecialist != "Doplnit staging." {
+	feedback := requestJSON[ReportRead](t, router, http.MethodPatch, "/api/v1/reports/"+itoa(report.ID)+"/feedback", token, `{"feedback_specialist":"Add staging."}`, http.StatusOK)
+	if feedback.FeedbackSpecialist == nil || *feedback.FeedbackSpecialist != "Add staging." {
 		t.Fatalf("feedback was not updated: %+v", feedback)
 	}
 
 	name := requestJSON[struct {
 		Name string `json:"name"`
 	}](t, router, http.MethodGet, "/api/v1/patients/"+itoa(patient.ID)+"/name", token, ``, http.StatusOK)
-	if name.Name != "Marie Dvořáková" {
+	if name.Name != "Mary Smith" {
 		t.Fatalf("unexpected patient name payload: %+v", name)
 	}
 }

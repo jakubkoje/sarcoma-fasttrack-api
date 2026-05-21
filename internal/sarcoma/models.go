@@ -26,19 +26,19 @@ const (
 func (s ReportStatus) Czech() string {
 	switch s {
 	case StatusDraft:
-		return "Koncept"
+		return "Draft"
 	case StatusActive:
-		return "Aktivní"
+		return "Active"
 	case StatusSubmitted:
-		return "Odeslaný"
+		return "Submitted"
 	case StatusSent:
-		return "Odesláno"
+		return "Sent"
 	case StatusDone:
-		return "Dokončeno"
+		return "Done"
 	case StatusError:
-		return "Chyba"
+		return "Error"
 	case StatusCancelled:
-		return "Zrušené"
+		return "Cancelled"
 	default:
 		return string(s)
 	}

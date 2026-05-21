@@ -22,27 +22,27 @@ func TestAuthRegisterLogoutAndCRUDRoutes(t *testing.T) {
 
 	adminToken := loginToken(t, router, "admin@admin.com", "admin")
 	organization := requestJSON[OrganizationRead](t, router, http.MethodPost, "/api/v1/organizations", adminToken, `{
-		"name": "Test centrum",
+		"name": "Test center",
 		"type_code": "prov",
 		"address": "Testovaci 1",
 		"contact": "+420111222333",
 		"email": "centrum@example.test"
 	}`, http.StatusCreated)
-	if organization.ID == 0 || organization.Name == nil || *organization.Name != "Test centrum" {
+	if organization.ID == 0 || organization.Name == nil || *organization.Name != "Test center" {
 		t.Fatalf("unexpected organization: %+v", organization)
 	}
 
 	updatedOrganization := requestJSON[OrganizationRead](t, router, http.MethodPut, "/api/v1/organizations/"+itoa(organization.ID), adminToken, `{
-		"name": "Test centrum updated"
+		"name": "Test center updated"
 	}`, http.StatusOK)
-	if updatedOrganization.Name == nil || *updatedOrganization.Name != "Test centrum updated" {
+	if updatedOrganization.Name == nil || *updatedOrganization.Name != "Test center updated" {
 		t.Fatalf("organization was not updated: %+v", updatedOrganization)
 	}
 
 	orgName := requestJSON[struct {
 		Name string `json:"name"`
 	}](t, router, http.MethodGet, "/api/v1/organizations/"+itoa(organization.ID)+"/name", adminToken, ``, http.StatusOK)
-	if orgName.Name != "Test centrum updated" {
+	if orgName.Name != "Test center updated" {
 		t.Fatalf("unexpected organization name: %+v", orgName)
 	}
 
