@@ -21,7 +21,6 @@ type storedUser struct {
 
 type storedDoctor struct {
 	ID             int
-	UserID         int
 	OrganizationID *int
 	FhirID         *string
 }
@@ -108,7 +107,7 @@ func (s *Store) seed() {
 	s.addSeedUser(3, "coordinator@sft.local", "coordinator", RoleCoordinator, strPtr("prac-coordinator-seed"))
 	s.addSeedUser(19, "doctor@sft.local", "doctor", RoleDoctor, strPtr("prac-doctor-seed"))
 	orgID := 14
-	s.doctors[19] = storedDoctor{ID: 19, UserID: 19, OrganizationID: &orgID, FhirID: strPtr("prac-doctor-seed")}
+	s.doctors[19] = storedDoctor{ID: 19, OrganizationID: &orgID, FhirID: strPtr("prac-doctor-seed")}
 
 	s.organizations[14] = storedOrganization{OrganizationRead: OrganizationRead{
 		ID:            14,

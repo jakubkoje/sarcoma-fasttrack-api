@@ -68,7 +68,6 @@ func createUserLocked(store *Store, payload UserCreate) (storedUser, *validation
 		user.FhirID = fhirID
 		store.doctors[id] = storedDoctor{
 			ID:             id,
-			UserID:         id,
 			OrganizationID: payload.OrganizationID,
 			FhirID:         fhirID,
 		}

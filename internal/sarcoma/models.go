@@ -80,12 +80,10 @@ type TokenResponse struct {
 }
 
 type UserCreate struct {
-	Email            string   `json:"email" binding:"required"`
-	Password         string   `json:"password" binding:"required"`
-	Role             UserRole `json:"role" binding:"required"`
-	PractitionerName *string  `json:"practitioner_name,omitempty"`
-	OrganizationID   *int     `json:"organization_id,omitempty"`
-	ICO              *string  `json:"ico,omitempty"`
+	Email          string   `json:"email" binding:"required"`
+	Password       string   `json:"password" binding:"required"`
+	Role           UserRole `json:"role" binding:"required"`
+	OrganizationID *int     `json:"organization_id,omitempty"`
 }
 
 type UserRead struct {
