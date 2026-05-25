@@ -30,6 +30,7 @@ tags:
     description: Health and API metadata
 security:
   - bearerAuth: []
+  - sarcomaToken: []
 paths:
   /health/db:
     get:
@@ -681,6 +682,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    sarcomaToken:
+      type: apiKey
+      in: header
+      name: X-Sarcoma-Token
+      description: Same application token as bearerAuth, sent in a project-specific header for gateways that reserve Authorization.
   parameters:
     PatientId:
       in: path

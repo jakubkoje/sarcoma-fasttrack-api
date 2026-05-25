@@ -45,7 +45,7 @@ func main() {
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "PUT", "POST", "DELETE", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+		AllowHeaders:     []string{"Origin", "Authorization", "X-Sarcoma-Token", "Content-Type"},
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
 	}))

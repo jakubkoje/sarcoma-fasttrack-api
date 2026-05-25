@@ -11,13 +11,13 @@ const currentUserKey = "current_user"
 
 func AuthMiddleware(store *Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if header == "" || !strings.HasPrefix(header, "Bearer ") {
+		token, ok := applicationToken(c)
+		if !ok {
 			writeError(c, http.StatusUnauthorized, "Missing bearer token")
 			c.Abort()
 			return
 		}
-		email, err := store.verifyAccessToken(strings.TrimPrefix(header, "Bearer "))
+		email, err := store.verifyAccessToken(token)
 		if err != nil {
 			writeError(c, http.StatusUnauthorized, "Invalid bearer token")
 			c.Abort()
@@ -32,6 +32,18 @@ func AuthMiddleware(store *Store) gin.HandlerFunc {
 		c.Set(currentUserKey, user)
 		c.Next()
 	}
+}
+
+func applicationToken(c *gin.Context) (string, bool) {
+	if token := strings.TrimSpace(c.GetHeader("X-Sarcoma-Token")); token != "" {
+		return strings.TrimPrefix(token, "Bearer "), true
+	}
+
+	header := strings.TrimSpace(c.GetHeader("Authorization"))
+	if header == "" || !strings.HasPrefix(header, "Bearer ") {
+		return "", false
+	}
+	return strings.TrimSpace(strings.TrimPrefix(header, "Bearer ")), true
 }
 
 func currentUser(c *gin.Context) (storedUser, bool) {

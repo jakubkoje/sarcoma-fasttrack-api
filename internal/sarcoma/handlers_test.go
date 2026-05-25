@@ -69,6 +69,18 @@ func TestProtectedRoutesRequireBearerToken(t *testing.T) {
 	}
 }
 
+func TestProtectedRoutesAcceptApplicationTokenHeader(t *testing.T) {
+	router := testRouter()
+	token := loginToken(t, router, "admin@admin.com", "admin")
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/reports", nil)
+	req.Header.Set("X-Sarcoma-Token", token)
+	router.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected custom token header to authenticate, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestDoctorOnlySeesOwnReports(t *testing.T) {
 	router := testRouter()
 	token := loginToken(t, router, "doctor@sft.local", "doctor")
